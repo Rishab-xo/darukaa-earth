@@ -5,6 +5,6 @@ geoalchemy2
 psycopg2-binary
 pydantic[email]
 pyjwt
-pwdlib[bcrypt]
+pwdlib[argon2]
 python-multipart
 python-dotenv
