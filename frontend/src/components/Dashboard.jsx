@@ -173,6 +173,18 @@ export default function Dashboard() {
   // Fetch Sites when a Project is selected
   useEffect(() => {
     if (!selectedProject) return;
+
+    // Remove any polygon from the map and zoom out to starting view when switching projects
+    draw.current?.deleteAll();
+    if (map.current) {
+      map.current.flyTo({
+        center: [77.5946, 12.9716],
+        zoom: 12,
+        duration: 800,
+        essential: true,
+      });
+    }
+
     let isMounted = true;
     const fetchSites = async () => {
       try {
@@ -185,12 +197,8 @@ export default function Dashboard() {
         if (!isMounted) return;
         const siteList = res.data || [];
         setSites(siteList);
-        if (siteList.length > 0) {
-          setSelectedSite(siteList[0].id);
-        } else {
-          setSelectedSite(null);
-          setAnalyticsData([]);
-        }
+        setSelectedSite(null);
+        setAnalyticsData([]);
       } catch (err) {
         console.error("Error fetching sites:", err);
       } finally {
@@ -255,7 +263,11 @@ export default function Dashboard() {
 
   // When a site is selected, render its saved polygon on the map & fit bounds
   useEffect(() => {
-    if (!draw.current || !selectedSite) return;
+    if (!draw.current) return;
+    if (!selectedSite) {
+      draw.current.deleteAll();
+      return;
+    }
     const site = sites.find((s) => s.id === selectedSite);
     if (site && site.boundary) {
       draw.current.deleteAll();
