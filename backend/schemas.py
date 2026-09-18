@@ -22,6 +22,10 @@ class ProjectCreate(BaseModel):
     title: str
     description: Optional[str] = None
 
+class ProjectUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+
 class ProjectResponse(ProjectCreate):
     id: int
     created_at: datetime
@@ -32,6 +36,9 @@ class SiteCreate(BaseModel):
     name: str
     # This will accept the raw GeoJSON geometry object from Mapbox GL Draw
     boundary: Dict[str, Any] 
+
+class SiteUpdate(BaseModel):
+    name: Optional[str] = None 
 
 class SiteResponse(BaseModel):
     id: int

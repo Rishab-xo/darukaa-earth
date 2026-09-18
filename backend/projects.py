@@ -108,6 +108,29 @@ def get_site_analytics(
 ):
     return db.query(models.SiteAnalytics).filter(models.SiteAnalytics.site_id == site_id).order_by(models.SiteAnalytics.recorded_date.asc()).all()
 
+@router.patch("/{project_id}", response_model=schemas.ProjectResponse)
+def update_project(
+    project_id: int,
+    project_update: schemas.ProjectUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    project = db.query(models.Project).filter(
+        models.Project.id == project_id, 
+        models.Project.user_id == current_user.id
+    ).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    if project_update.title is not None and project_update.title.strip():
+        project.title = project_update.title.strip()
+    if project_update.description is not None:
+        project.description = project_update.description.strip()
+    
+    db.commit()
+    db.refresh(project)
+    return project
+
 @router.delete("/{project_id}", status_code=204)
 def delete_project(
     project_id: int,
@@ -124,6 +147,37 @@ def delete_project(
     db.delete(project)
     db.commit()
     return None
+
+@router.patch("/sites/{site_id}", response_model=schemas.SiteResponse)
+def update_site(
+    site_id: int,
+    site_update: schemas.SiteUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    site = db.query(models.Site).join(models.Project).filter(
+        models.Site.id == site_id,
+        models.Project.user_id == current_user.id
+    ).first()
+    if not site:
+        raise HTTPException(status_code=404, detail="Site not found")
+    
+    if site_update.name is not None and site_update.name.strip():
+        site.name = site_update.name.strip()
+    
+    db.commit()
+    db.refresh(site)
+
+    boundary_geojson = db.query(func.ST_AsGeoJSON(site.boundary)).scalar()
+    geom = json.loads(boundary_geojson) if boundary_geojson else None
+
+    return {
+        "id": site.id,
+        "project_id": site.project_id,
+        "name": site.name,
+        "created_at": site.created_at,
+        "boundary": geom
+    }
 
 @router.delete("/sites/{site_id}", status_code=204)
 def delete_site(

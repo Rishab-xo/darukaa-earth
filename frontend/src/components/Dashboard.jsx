@@ -30,6 +30,7 @@ import {
   Calendar,
   Search,
   Trash2,
+  Pencil,
   AlertTriangle,
 } from "lucide-react";
 
@@ -77,11 +78,19 @@ export default function Dashboard() {
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [projectToDelete, setProjectToDelete] = useState(null);
   const [deletingProject, setDeletingProject] = useState(false);
+  const [projectToRename, setProjectToRename] = useState(null);
+  const [renameProjectTitle, setRenameProjectTitle] = useState("");
+  const [renamingProject, setRenamingProject] = useState(false);
 
   const [sites, setSites] = useState([]);
   const [selectedSite, setSelectedSite] = useState(null);
   const [loadingSites, setLoadingSites] = useState(false);
   const [analyticsData, setAnalyticsData] = useState([]);
+  const [siteToRename, setSiteToRename] = useState(null);
+  const [renameSiteName, setRenameSiteName] = useState("");
+  const [renamingSite, setRenamingSite] = useState(false);
+  const [siteToDelete, setSiteToDelete] = useState(null);
+  const [deletingSite, setDeletingSite] = useState(false);
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [walkthroughOpen, setWalkthroughOpen] = useState(false);
@@ -373,6 +382,92 @@ export default function Dashboard() {
     }
   };
 
+  const handleRenameProject = async (e) => {
+    e?.preventDefault();
+    if (!projectToRename || !renameProjectTitle.trim()) return;
+    try {
+      setRenamingProject(true);
+      const token = localStorage.getItem("token");
+      const res = await axios.patch(
+        `${API_URL}/projects/${projectToRename.id}`,
+        { title: renameProjectTitle.trim() },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      setProjects((prev) =>
+        prev.map((p) =>
+          p.id === projectToRename.id ? { ...p, title: res.data.title } : p,
+        ),
+      );
+      addToast(`Project renamed to "${res.data.title}"`, "success");
+      setProjectToRename(null);
+      setRenameProjectTitle("");
+    } catch (err) {
+      console.error("Error renaming project:", err);
+      addToast("Failed to rename project", "error");
+    } finally {
+      setRenamingProject(false);
+    }
+  };
+
+  const handleRenameSite = async (e) => {
+    e?.preventDefault();
+    if (!siteToRename || !renameSiteName.trim()) return;
+    try {
+      setRenamingSite(true);
+      const token = localStorage.getItem("token");
+      const res = await axios.patch(
+        `${API_URL}/projects/sites/${siteToRename.id}`,
+        { name: renameSiteName.trim() },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      setSites((prev) =>
+        prev.map((s) =>
+          s.id === siteToRename.id ? { ...s, name: res.data.name } : s,
+        ),
+      );
+      addToast(`Site renamed to "${res.data.name}"`, "success");
+      setSiteToRename(null);
+      setRenameSiteName("");
+    } catch (err) {
+      console.error("Error renaming site:", err);
+      addToast("Failed to rename site", "error");
+    } finally {
+      setRenamingSite(false);
+    }
+  };
+
+  const handleDeleteSite = async () => {
+    if (!siteToDelete) return;
+    try {
+      setDeletingSite(true);
+      const token = localStorage.getItem("token");
+      await axios.delete(`${API_URL}/projects/sites/${siteToDelete.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const updatedSites = sites.filter((s) => s.id !== siteToDelete.id);
+      setSites(updatedSites);
+
+      if (selectedSite === siteToDelete.id) {
+        if (updatedSites.length > 0) {
+          setSelectedSite(updatedSites[0].id);
+        } else {
+          setSelectedSite(null);
+          setAnalyticsData([]);
+          draw.current?.deleteAll();
+        }
+      }
+
+      addToast(`Site "${siteToDelete.name}" deleted`, "info");
+      setSiteToDelete(null);
+    } catch (err) {
+      console.error("Error deleting site:", err);
+      addToast("Failed to delete site", "error");
+    } finally {
+      setDeletingSite(false);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     window.location.reload();
@@ -535,18 +630,33 @@ export default function Dashboard() {
                         </div>
                       )}
                     </div>
-                    <button
-                      type="button"
-                      className="item-card-delete"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setProjectToDelete(p);
-                      }}
-                      title={`Delete ${p.title}`}
-                      aria-label={`Delete ${p.title}`}
-                    >
-                      <Trash2 size={13} />
-                    </button>
+                    <div className="item-card-actions">
+                      <button
+                        type="button"
+                        className="item-card-btn edit"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setProjectToRename(p);
+                          setRenameProjectTitle(p.title);
+                        }}
+                        title={`Rename ${p.title}`}
+                        aria-label={`Rename ${p.title}`}
+                      >
+                        <Pencil size={12} />
+                      </button>
+                      <button
+                        type="button"
+                        className="item-card-btn delete"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setProjectToDelete(p);
+                        }}
+                        title={`Delete ${p.title}`}
+                        aria-label={`Delete ${p.title}`}
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
                   </div>
                 ))
               )}
@@ -593,6 +703,33 @@ export default function Dashboard() {
                       className={`item-card ${selectedSite === s.id ? "selected-blue" : ""}`}
                     >
                       <div className="item-card-title">{s.name}</div>
+                      <div className="item-card-actions">
+                        <button
+                          type="button"
+                          className="item-card-btn edit"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSiteToRename(s);
+                            setRenameSiteName(s.name);
+                          }}
+                          title={`Rename ${s.name}`}
+                          aria-label={`Rename ${s.name}`}
+                        >
+                          <Pencil size={12} />
+                        </button>
+                        <button
+                          type="button"
+                          className="item-card-btn delete"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSiteToDelete(s);
+                          }}
+                          title={`Delete ${s.name}`}
+                          aria-label={`Delete ${s.name}`}
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}
@@ -810,6 +947,176 @@ export default function Dashboard() {
           </div>
         </main>
       </div>
+
+      {/* ─── Rename Project Modal ─── */}
+      {projectToRename && (
+        <div
+          className="modal-backdrop"
+          onClick={() => !renamingProject && setProjectToRename(null)}
+        >
+          <div
+            className="modal-card"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="modal-header">
+              <div className="modal-icon-edit">
+                <Pencil size={20} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <h3 className="modal-title">Rename Project</h3>
+                <p className="modal-desc">
+                  Update the display title for this conservation project.
+                </p>
+              </div>
+            </div>
+
+            <form
+              onSubmit={handleRenameProject}
+              style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+            >
+              <input
+                type="text"
+                className="modal-input"
+                value={renameProjectTitle}
+                onChange={(e) => setRenameProjectTitle(e.target.value)}
+                placeholder="Enter project name..."
+                autoFocus
+                disabled={renamingProject}
+              />
+
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="btn-modal-cancel"
+                  onClick={() => setProjectToRename(null)}
+                  disabled={renamingProject}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-modal-primary"
+                  disabled={renamingProject || !renameProjectTitle.trim()}
+                >
+                  {renamingProject ? "Saving…" : "Save Name"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Rename Site Modal ─── */}
+      {siteToRename && (
+        <div
+          className="modal-backdrop"
+          onClick={() => !renamingSite && setSiteToRename(null)}
+        >
+          <div
+            className="modal-card"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="modal-header">
+              <div className="modal-icon-edit">
+                <Pencil size={20} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <h3 className="modal-title">Rename Site</h3>
+                <p className="modal-desc">
+                  Give this conservation site a clear, recognizable name.
+                </p>
+              </div>
+            </div>
+
+            <form
+              onSubmit={handleRenameSite}
+              style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+            >
+              <input
+                type="text"
+                className="modal-input"
+                value={renameSiteName}
+                onChange={(e) => setRenameSiteName(e.target.value)}
+                placeholder="Enter site name (e.g. Forest Sector Alpha)..."
+                autoFocus
+                disabled={renamingSite}
+              />
+
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="btn-modal-cancel"
+                  onClick={() => setSiteToRename(null)}
+                  disabled={renamingSite}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-modal-primary"
+                  disabled={renamingSite || !renameSiteName.trim()}
+                >
+                  {renamingSite ? "Saving…" : "Save Name"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Delete Site Confirmation Modal ─── */}
+      {siteToDelete && (
+        <div
+          className="modal-backdrop"
+          onClick={() => !deletingSite && setSiteToDelete(null)}
+        >
+          <div
+            className="modal-card"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="modal-header">
+              <div className="modal-icon-danger">
+                <AlertTriangle size={22} />
+              </div>
+              <div>
+                <h3 className="modal-title">Delete Site</h3>
+                <p className="modal-desc">
+                  Are you sure you want to delete{" "}
+                  <span className="modal-highlight">"{siteToDelete.name}"</span>
+                  ? This will permanently remove the boundary polygon and all
+                  associated 12-month analytics data.
+                </p>
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="btn-modal-cancel"
+                onClick={() => setSiteToDelete(null)}
+                disabled={deletingSite}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn-modal-delete"
+                onClick={handleDeleteSite}
+                disabled={deletingSite}
+              >
+                <Trash2 size={14} />
+                {deletingSite ? "Deleting…" : "Delete Site"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ─── Delete Confirmation Modal ─── */}
       {projectToDelete && (
