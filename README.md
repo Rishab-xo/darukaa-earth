@@ -23,6 +23,10 @@ The database consists of 4 relational tables:
 - **Pre-commit Hooks**: Husky and `lint-staged` are configured at the repository root. Before every commit, Prettier auto-formats frontend code, ESLint checks for JavaScript/React issues, and Ruff lints the Python backend. This guarantees zero broken or unformatted code enters the repository.
 - **GitHub Actions**: Automated workflows are triggered on `push` and `pull_request` to the `main` branch, installing dependencies and running formatting/linting verification in an isolated Ubuntu environment.
 
+## Datasets & Mock Data
+
+For the analytics visualization, this application auto-generates 12 months of synthetic Carbon Sequestration and Biodiversity Index data upon the creation of any new site. This mocking strategy was chosen to guarantee that reviewers immediately experience a fully populated, interactive Chart.js dashboard without needing to manually upload external CSV datasets or run complex database seeding scripts.
+
 ## Local Setup Instructions
 
 ### Backend (FastAPI)
