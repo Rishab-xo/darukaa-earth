@@ -574,7 +574,7 @@ body {
 .item-card-actions {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 6px;
   opacity: 0;
   transition: opacity var(--transition-fast);
   flex-shrink: 0;
@@ -592,8 +592,8 @@ body {
 
 .item-card-btn {
   color: var(--text-muted);
-  padding: 4px;
-  border-radius: 5px;
+  padding: 5px;
+  border-radius: 6px;
   border: none;
   background: transparent;
   cursor: pointer;
@@ -602,7 +602,8 @@ body {
   justify-content: center;
   transition:
     color var(--transition-fast),
-    background var(--transition-fast);
+    background var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .item-card-btn:hover {
