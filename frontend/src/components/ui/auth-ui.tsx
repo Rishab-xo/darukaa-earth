@@ -439,6 +439,8 @@ export interface AuthUIProps {
   error?: string;
   loading?: boolean;
   successMessage?: string;
+  activeTab?: "signin" | "signup";
+  onTabChange?: (tab: "signin" | "signup") => void;
 }
 
 const defaultSignInContent = {
@@ -471,9 +473,17 @@ export function AuthUI({
   error,
   loading,
   successMessage,
+  activeTab,
+  onTabChange,
 }: AuthUIProps) {
-  const [isSignIn, setIsSignIn] = useState(true);
-  const toggleForm = () => setIsSignIn((prev) => !prev);
+  const [internalTab, setInternalTab] = useState(true);
+  const isSignIn =
+    activeTab !== undefined ? activeTab === "signin" : internalTab;
+  const toggleForm = () => {
+    const next = !isSignIn;
+    setInternalTab(next);
+    onTabChange?.(next ? "signin" : "signup");
+  };
 
   const finalSignInContent = {
     image: { ...defaultSignInContent.image, ...signInContent.image },

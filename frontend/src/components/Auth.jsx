@@ -8,6 +8,13 @@ export default function Auth({ setToken }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [activeTab, setActiveTab] = useState("signin");
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setError("");
+    setSuccessMessage("");
+  };
 
   const handleSignIn = async (email, password) => {
     setError("");
@@ -37,7 +44,8 @@ export default function Auth({ setToken }) {
     setLoading(true);
     try {
       await axios.post(`${API_URL}/auth/register`, { email, password });
-      setSuccessMessage("Registration successful! Please sign in.");
+      setSuccessMessage("Account created successfully! Please sign in.");
+      setActiveTab("signin");
     } catch (err) {
       setError(
         err.response?.data?.detail || "Registration failed. Please try again.",
@@ -54,6 +62,8 @@ export default function Auth({ setToken }) {
       error={error}
       loading={loading}
       successMessage={successMessage}
+      activeTab={activeTab}
+      onTabChange={handleTabChange}
     />
   );
 }
