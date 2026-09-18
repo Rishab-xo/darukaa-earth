@@ -9,6 +9,13 @@ from database import get_db
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 
+@router.get("/", response_model=list[schemas.ProjectResponse])
+def get_projects(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    return db.query(models.Project).filter(models.Project.user_id == current_user.id).all()
+
 @router.post("/", response_model=schemas.ProjectResponse)
 def create_project(
     project: schemas.ProjectCreate, 
@@ -55,20 +62,82 @@ def create_site(
         db.add(analytics)
     db.commit()
     
-    return db_site
+    return {
+        "id": db_site.id,
+        "project_id": db_site.project_id,
+        "name": db_site.name,
+        "created_at": db_site.created_at,
+        "boundary": site.boundary,
+    }
 
-@router.get("/{project_id}/sites")
+@router.get("/{project_id}/sites", response_model=list[schemas.SiteResponse])
 def get_sites(
     project_id: int, 
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user)
 ):
-    return db.query(models.Site).filter(models.Site.project_id == project_id).all()
+    project = db.query(models.Project).filter(models.Project.id == project_id, models.Project.user_id == current_user.id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
 
-@router.get("/sites/{site_id}/analytics")
+    sites = db.query(
+        models.Site.id,
+        models.Site.project_id,
+        models.Site.name,
+        models.Site.created_at,
+        func.ST_AsGeoJSON(models.Site.boundary).label("boundary_geojson")
+    ).filter(models.Site.project_id == project_id).all()
+
+    res = []
+    for s in sites:
+        geom = json.loads(s.boundary_geojson) if s.boundary_geojson else None
+        res.append({
+            "id": s.id,
+            "project_id": s.project_id,
+            "name": s.name,
+            "created_at": s.created_at,
+            "boundary": geom
+        })
+    return res
+
+@router.get("/sites/{site_id}/analytics", response_model=list[schemas.SiteAnalyticsResponse])
 def get_site_analytics(
     site_id: int, 
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user)
 ):
     return db.query(models.SiteAnalytics).filter(models.SiteAnalytics.site_id == site_id).order_by(models.SiteAnalytics.recorded_date.asc()).all()
+
+@router.delete("/{project_id}", status_code=204)
+def delete_project(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    project = db.query(models.Project).filter(
+        models.Project.id == project_id, 
+        models.Project.user_id == current_user.id
+    ).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    db.delete(project)
+    db.commit()
+    return None
+
+@router.delete("/sites/{site_id}", status_code=204)
+def delete_site(
+    site_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    site = db.query(models.Site).join(models.Project).filter(
+        models.Site.id == site_id,
+        models.Project.user_id == current_user.id
+    ).first()
+    if not site:
+        raise HTTPException(status_code=404, detail="Site not found")
+    
+    db.delete(site)
+    db.commit()
+    return None

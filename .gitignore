@@ -9,3 +9,8 @@ backend/__pycache__/
 
 # Environment Variables
 .env
+.env.*
+*.env
+!.env.example
+!frontend/.env.example
+!backend/.env.example

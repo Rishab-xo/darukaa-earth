@@ -38,5 +38,16 @@ class SiteResponse(BaseModel):
     project_id: int
     name: str
     created_at: datetime
+    boundary: Optional[Dict[str, Any]] = None
+    class Config:
+        from_attributes = True
+
+class SiteAnalyticsResponse(BaseModel):
+    id: int
+    site_id: int
+    recorded_date: datetime
+    carbon_sequestration: float
+    biodiversity_index: int
+    created_at: datetime
     class Config:
         from_attributes = True

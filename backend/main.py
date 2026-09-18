@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import models
@@ -9,10 +10,13 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Darukaa.Earth API")
 
-# Setup CORS for the React frontend
+# Setup CORS (Supports comma-separated origins from env or default to "*")
+cors_origins_env = os.getenv("CORS_ORIGINS", "*")
+origins = [origin.strip() for origin in cors_origins_env.split(",") if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Change to Vercel URL in production
+    allow_origins=origins if origins else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
